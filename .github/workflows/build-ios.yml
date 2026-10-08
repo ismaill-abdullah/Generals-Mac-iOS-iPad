@@ -9,7 +9,7 @@ jobs:
   build-ios:
     name: ios-vulkan z_generals
     runs-on: macos-latest
-    timeout-minutes: 240
+    timeout-minutes: 300
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -19,10 +19,11 @@ jobs:
       - name: Init DXVK submodule
         run: git submodule update --init references/fbraz3-dxvk
 
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: 'ffc071e0c08432c60c9b64f00334c0227667931b'
+      - name: Setup vcpkg (latest, full clone)
+        run: |
+          git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
+          "$HOME/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
+          echo "VCPKG_ROOT=$HOME/vcpkg" >> "$GITHUB_ENV"
 
       - name: Install tools
         run: |
@@ -81,5 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-logs
-          path: logs/
+          path: |
+            logs/
+            build/ios-vulkan/vcpkg-manifest-install.log
           if-no-files-found: ignore
