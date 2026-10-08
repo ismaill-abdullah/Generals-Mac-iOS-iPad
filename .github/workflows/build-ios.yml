@@ -77,6 +77,105 @@ jobs:
           cmake --build build/ios-vulkan --target z_generals -j "$NPROC" 2>&1 | tee logs/build_ios.log
           exit ${PIPESTATUS[0]}
 
+      - name: Prepare packaging tools
+        run: |
+          set -eu
+          brew install xcodegen
+          bash scripts/build/ios/fetch-moltenvk.sh
+          bash scripts/build/ios/stage-fonts.sh
+          find build/ios-vulkan -name "*.dylib" > logs/dylibs.txt || true
+          find build/ios-vulkan/GeneralsMD -maxdepth 2 > logs/generalsmd_tree.txt || true
+
+      - name: Build unsigned shell app
+        run: |
+          set -euo pipefail
+          (cd ios && xcodegen generate --quiet)
+          xcodebuild -project ios/GeneralsXZH.xcodeproj \
+            -scheme GeneralsXZH -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee logs/xcodebuild_shell.log | tail -20
+          test -d ios/build/Build/Products/Release-iphoneos/GeneralsXZH.app
+
+      - name: Assemble unsigned IPA and Documents kit
+        run: |
+          set -eu
+          B=build/ios-vulkan
+          DXVK="$B/_deps/dxvk-build-macos"
+          SHELL_APP=ios/build/Build/Products/Release-iphoneos/GeneralsXZH.app
+          ENGINE="$B/GeneralsMD/GeneralsXZH.app/GeneralsXZH"
+          MVK="$HOME/GeneralsX/MoltenVK/MoltenVK/MoltenVK/dynamic/MoltenVK.xcframework/ios-arm64/MoltenVK.framework"
+
+          rm -rf out kit
+          mkdir -p out/Payload
+          cp -R "$SHELL_APP" out/Payload/
+          APP=out/Payload/GeneralsXZH.app
+
+          if [ ! -f "$ENGINE" ]; then echo "MISSING engine: $ENGINE"; exit 1; fi
+          cp "$ENGINE" "$APP/GeneralsXZH"
+
+          mkdir -p "$APP/Frameworks"
+          MISSING=0
+          for lib in \
+            "$DXVK/src/d3d8/libdxvk_d3d8.0.dylib" \
+            "$DXVK/src/d3d9/libdxvk_d3d9.0.dylib" \
+            "$B/_deps/sdl3-build/libSDL3.0.dylib" \
+            "$B/_deps/sdl3_image-build/libSDL3_image.0.dylib" \
+            "$B/_deps/openal_soft-build/libopenal.1.24.2.dylib" \
+            "$B/libgamespy.dylib"; do
+            if [ -f "$lib" ]; then
+              cp "$lib" "$APP/Frameworks/"
+              echo "embedded $(basename "$lib")"
+            elif [ "$(basename "$lib")" = "libgamespy.dylib" ]; then
+              echo "skip optional libgamespy.dylib"
+            else
+              echo "MISSING $lib"
+              MISSING=1
+            fi
+          done
+          if [ "$MISSING" = "1" ]; then echo "See logs/dylibs.txt for real paths"; exit 1; fi
+
+          if [ -f "$APP/Frameworks/libopenal.1.24.2.dylib" ]; then
+            mv "$APP/Frameworks/libopenal.1.24.2.dylib" "$APP/Frameworks/libopenal.1.dylib"
+          fi
+
+          if [ ! -d "$MVK" ]; then echo "MISSING MoltenVK.framework: $MVK"; exit 1; fi
+          cp -R "$MVK" "$APP/Frameworks/"
+
+          ICON=ios/Stub/Assets.xcassets/AppIcon.appiconset/icon.png
+          if [ -f "$ICON" ]; then
+            sips -z 120 120 "$ICON" --out "$APP/AppIcon60x60@2x.png" > /dev/null
+            sips -z 152 152 "$ICON" --out "$APP/AppIcon76x76@2x.png" > /dev/null
+            sips -z 167 167 "$ICON" --out "$APP/AppIcon83.5x83.5@2x.png" > /dev/null
+          fi
+
+          install_name_tool -add_rpath "@executable_path/Frameworks" "$APP/GeneralsXZH" || true
+
+          echo "=== platform check"
+          vtool -show-build "$APP/GeneralsXZH" | head -12 || true
+          lipo -info "$APP/GeneralsXZH" || true
+          otool -L "$APP/GeneralsXZH" | head -30 || true
+          du -sh "$APP"
+
+          (cd out && zip -qry GeneralsXZH-unsigned.ipa Payload)
+
+          mkdir -p kit/fonts
+          cp "$HOME"/GeneralsX/ios-staging/fonts/*.ttf kit/fonts/
+          cp ios/config/dxvk.conf kit/dxvk.conf
+          cp ios/config/Options.ini kit/DefaultOptions.ini
+          (cd kit && zip -qr ../out/documents-kit.zip .)
+          ls -la out
+
+      - name: Upload IPA and Documents kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: |
+            out/GeneralsXZH-unsigned.ipa
+            out/documents-kit.zip
+          if-no-files-found: error
+
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
