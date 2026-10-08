@@ -16,8 +16,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Init DXVK submodule
-        run: git submodule update --init references/fbraz3-dxvk
+      - name: Init DXVK submodule (recursive)
+        run: git submodule update --init --recursive references/fbraz3-dxvk
 
       - name: Setup vcpkg (latest, full clone)
         run: |
@@ -85,4 +85,5 @@ jobs:
           path: |
             logs/
             build/ios-vulkan/vcpkg-manifest-install.log
+            build/ios-vulkan/_deps/dxvk-build-macos/meson-logs/meson-log.txt
           if-no-files-found: ignore
