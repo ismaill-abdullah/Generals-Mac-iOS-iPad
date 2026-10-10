@@ -806,6 +806,8 @@ void GameClient::updateHeadless()
 	TheParticleSystemManager->update();
 }
 
+// iOS: incremented by SDL3GameEngine on every finger-down, so a tap can skip a movie (no ESC key on a phone).
+unsigned int g_iosFingerDownCount = 0;
 Bool GameClient::isMovieAbortRequested()
 {
 	if (TheGameEngine)
@@ -813,6 +815,25 @@ Bool GameClient::isMovieAbortRequested()
 		TheGameEngine->serviceWindowsOS();
 	}
 
+#if defined(__APPLE__)
+	{
+		// A new tap during a movie skips it. Taps made before the movie began are ignored:
+		// a gap of more than 500 ms between calls means a new movie started.
+		static unsigned int s_lastCall = 0;
+		static unsigned int s_seenCount = 0;
+		const unsigned int nowMs = (unsigned int)timeGetTime();
+		if (s_lastCall == 0 || nowMs - s_lastCall > 500)
+		{
+			s_seenCount = g_iosFingerDownCount;
+		}
+		s_lastCall = nowMs;
+		if (g_iosFingerDownCount != s_seenCount)
+		{
+			s_seenCount = g_iosFingerDownCount;
+			return TRUE;
+		}
+	}
+#endif
 	// TheSuperHackers @feature User can skip video by pressing ESC
 	if (TheKeyboard)
 	{
