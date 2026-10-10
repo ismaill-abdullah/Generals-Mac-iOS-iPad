@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdio>
 #include "VideoDevice/FFmpeg/FFmpegFile.h"
 #include "Common/file.h"
 
@@ -65,6 +66,7 @@ bool FFmpegFile::open(File *file)
         av_strerror(result, error_buffer, sizeof(error_buffer));
         DEBUG_LOG(("Failed 'avformat_open_input': %s", error_buffer));
         fprintf(stderr, "[VIDEO] avformat_open_input failed: %s\n", error_buffer);
+        fprintf(stderr, "[VIDEO] avformat_open_input failed: %s\n", error_buffer);
         close();
         return false;
     }
@@ -74,6 +76,7 @@ bool FFmpegFile::open(File *file)
         char error_buffer[1024];
         av_strerror(result, error_buffer, sizeof(error_buffer));
         DEBUG_LOG(("Failed 'avformat_find_stream_info': %s", error_buffer));
+        fprintf(stderr, "[VIDEO] avformat_find_stream_info failed: %s\n", error_buffer);
         fprintf(stderr, "[VIDEO] avformat_find_stream_info failed: %s\n", error_buffer);
         close();
         return false;
@@ -85,6 +88,7 @@ bool FFmpegFile::open(File *file)
         const AVCodec *input_codec = avcodec_find_decoder(av_stream->codecpar->codec_id);
         if (input_codec == nullptr) {
             DEBUG_LOG(("Codec not supported: '%s'", avcodec_get_name(av_stream->codecpar->codec_id)));
+            fprintf(stderr, "[VIDEO] codec not supported: %s\n", avcodec_get_name(av_stream->codecpar->codec_id));
             fprintf(stderr, "[VIDEO] codec not supported: %s\n", avcodec_get_name(av_stream->codecpar->codec_id));
             close();
             return false;
@@ -111,6 +115,7 @@ bool FFmpegFile::open(File *file)
             char error_buffer[1024];
             av_strerror(result, error_buffer, sizeof(error_buffer));
             DEBUG_LOG(("Failed 'avcodec_open2': %s", error_buffer));
+            fprintf(stderr, "[VIDEO] avcodec_open2 failed: %s\n", error_buffer);
             fprintf(stderr, "[VIDEO] avcodec_open2 failed: %s\n", error_buffer);
             close();
             return false;

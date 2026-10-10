@@ -68,6 +68,7 @@ extern "C" {
 
 #include <chrono>
 #include <cstdio>
+#include <cstdio>
 
 //----------------------------------------------------------------------------
 //         Externals                                                     
@@ -244,6 +245,7 @@ VideoStreamInterface*	FFmpegVideoPlayer::open( AsciiString movieTitle )
 
 	const Video* pVideo = getVideo(movieTitle);
 	fprintf(stderr, "[VIDEO] open('%s') video-entry=%s\n", movieTitle.str(), pVideo ? "found" : "NOT FOUND in Video.ini");
+	fprintf(stderr, "[VIDEO] open('%s') video-entry=%s\n", movieTitle.str(), pVideo ? "found" : "NOT FOUND in Video.ini");
 	if (pVideo) {
 		DEBUG_LOG(("FFmpegVideoPlayer::createStream() - About to open bink file\n"));
 		
@@ -263,6 +265,7 @@ VideoStreamInterface*	FFmpegVideoPlayer::open( AsciiString movieTitle )
 		sprintf( localizedFilePath, VIDEO_LANG_PATH_FORMAT, GetRegistryLanguage().str(), pVideo->m_filename.str(), VIDEO_EXT );
         File* file =  TheFileSystem->openFile(localizedFilePath);
 		fprintf(stderr, "[VIDEO] try '%s' -> %s\n", localizedFilePath, file ? "opened" : "not found");
+		fprintf(stderr, "[VIDEO] try '%s' -> %s\n", localizedFilePath, file ? "opened" : "not found");
 		DEBUG_ASSERTLOG(!file, ("opened localized bink file %s\n", localizedFilePath));
 		if (!file)
 		{
@@ -270,11 +273,13 @@ VideoStreamInterface*	FFmpegVideoPlayer::open( AsciiString movieTitle )
 			sprintf( filePath, "%s\\%s.%s", VIDEO_PATH, pVideo->m_filename.str(), VIDEO_EXT );
 			file = TheFileSystem->openFile(filePath);
 			fprintf(stderr, "[VIDEO] try '%s' -> %s\n", filePath, file ? "opened" : "not found");
+			fprintf(stderr, "[VIDEO] try '%s' -> %s\n", filePath, file ? "opened" : "not found");
 			DEBUG_ASSERTLOG(!file, ("opened bink file %s\n", filePath));
 		}
 
 		DEBUG_LOG(("FFmpegVideoPlayer::createStream() - About to create stream\n"));
         stream = createStream( file );
+		fprintf(stderr, "[VIDEO] createStream -> %s\n", stream ? "OK" : "FAILED");
 		fprintf(stderr, "[VIDEO] createStream -> %s\n", stream ? "OK" : "FAILED");
 	}
 
