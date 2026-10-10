@@ -3076,7 +3076,8 @@ VideoBuffer*	W3DDisplay::createVideoBuffer()
 		else
 		{
 			// card does not support any of the formats we need
-			return nullptr;
+			fprintf(stderr, "[VIDEO] caps query reports no video texture format, forcing X8R8G8B8\n");
+			format = VideoBuffer::TYPE_X8R8G8B8;
 		}
 	}
 	// on low mem machines, render every video in 16bit
