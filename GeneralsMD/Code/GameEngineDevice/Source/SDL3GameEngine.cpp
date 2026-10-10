@@ -54,6 +54,7 @@
 #include <cstdlib>
 #include <cstring>
 extern unsigned int g_iosFingerDownCount; // defined in GameClient.cpp
+extern unsigned int g_iosFingerDownCount; // defined in GameClient.cpp
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #endif
@@ -695,6 +696,7 @@ void SDL3GameEngine::pollSDL3Events(void)
 				if (TheMouse && m_SDLWindow) {
 					SDL3Mouse* mouse = dynamic_cast<SDL3Mouse*>(TheMouse);
 					if (mouse) {
+						if (event.type == SDL_EVENT_FINGER_DOWN) { ++g_iosFingerDownCount; }
 						if (event.type == SDL_EVENT_FINGER_DOWN) { ++g_iosFingerDownCount; }
 						handleTouchEvent(mouse, m_SDLWindow, event);
 					}
